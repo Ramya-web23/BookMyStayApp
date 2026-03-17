@@ -1,7 +1,9 @@
 // File: BookMyStay.java
 import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.List;
 
-// Abstract Room class (unchanged)
+// Abstract Room class
 abstract class Room {
     private String roomType;
     private int numberOfBeds;
@@ -51,7 +53,7 @@ class SuiteRoom extends Room {
     }
 }
 
-// Centralized inventory class
+// Centralized inventory
 class RoomInventory {
     private HashMap<String, Integer> inventory;
 
@@ -59,17 +61,15 @@ class RoomInventory {
         inventory = new HashMap<>();
     }
 
-    // Register a room type with initial availability
     public void addRoomType(String roomType, int count) {
         inventory.put(roomType, count);
     }
 
-    // Get current availability
     public int getAvailability(String roomType) {
         return inventory.getOrDefault(roomType, 0);
     }
 
-    // Update availability (for booking or cancellation)
+    // Controlled updates
     public void updateAvailability(String roomType, int change) {
         int current = inventory.getOrDefault(roomType, 0);
         int updated = current + change;
@@ -80,47 +80,59 @@ class RoomInventory {
         inventory.put(roomType, updated);
     }
 
-    // Display current inventory
-    public void displayInventory() {
-        System.out.println("\n=== Current Room Inventory ===");
-        for (String roomType : inventory.keySet()) {
-            System.out.println(roomType + " - Available: " + inventory.get(roomType));
-        }
-        System.out.println("==============================\n");
+    public HashMap<String, Integer> getInventorySnapshot() {
+        return new HashMap<>(inventory); // Read-only copy
     }
 }
 
-// Main application class
+// Search service: read-only access
+class RoomSearchService {
+    private RoomInventory inventory;
+    private List<Room> rooms;
+
+    public RoomSearchService(RoomInventory inventory, List<Room> rooms) {
+        this.inventory = inventory;
+        this.rooms = rooms;
+    }
+
+    // Display only available rooms
+    public void displayAvailableRooms() {
+        System.out.println("\n=== Available Rooms ===");
+        for (Room room : rooms) {
+            int available = inventory.getAvailability(room.getRoomType());
+            if (available > 0) {
+                room.displayDetails();
+                System.out.println("Available: " + available + "\n");
+            }
+        }
+        System.out.println("======================\n");
+    }
+}
+
+// Main application
 public class BookMyStay {
     public static void main(String[] args) {
         System.out.println("=== Welcome to Book My Stay App ===\n");
 
-        // Initialize room objects
-        Room singleRoom = new SingleRoom();
-        Room doubleRoom = new DoubleRoom();
-        Room suiteRoom = new SuiteRoom();
-
-        // Display room details
-        singleRoom.displayDetails();
-        doubleRoom.displayDetails();
-        suiteRoom.displayDetails();
+        // Initialize rooms
+        List<Room> rooms = new ArrayList<>();
+        rooms.add(new SingleRoom());
+        rooms.add(new DoubleRoom());
+        rooms.add(new SuiteRoom());
 
         // Initialize centralized inventory
         RoomInventory inventory = new RoomInventory();
-        inventory.addRoomType(singleRoom.getRoomType(), 5);
-        inventory.addRoomType(doubleRoom.getRoomType(), 3);
-        inventory.addRoomType(suiteRoom.getRoomType(), 2);
+        inventory.addRoomType("Single Room", 5);
+        inventory.addRoomType("Double Room", 0); // Example: unavailable
+        inventory.addRoomType("Suite Room", 2);
 
-        // Display inventory
-        inventory.displayInventory();
+        // Initialize search service
+        RoomSearchService searchService = new RoomSearchService(inventory, rooms);
 
-        // Example updates
-        inventory.updateAvailability("Single Room", -1); // One single room booked
-        inventory.updateAvailability("Suite Room", 1);   // One suite room freed
+        // Display available rooms
+        searchService.displayAvailableRooms();
 
-        // Display inventory after updates
-        inventory.displayInventory();
-
-        System.out.println("=== End of Room Listings ===");
+        // Inventory remains unchanged
+        System.out.println("=== End of Room Search ===");
     }
 }
